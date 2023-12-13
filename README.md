@@ -1,6 +1,9 @@
 # EctoUnixTimestamp
 
+[![hex.pm badge](https://img.shields.io/badge/Package%20on%20hex.pm-informational)](https://hex.pm/packages/ecto_unix_timestamp)
 [![Documentation badge](https://img.shields.io/badge/Documentation-ff69b4)][docs]
+[![CI](https://github.com/whatyouhide/ecto_unix_timestamp/actions/workflows/main.yml/badge.svg)](https://github.com/whatyouhide/ecto_unix_timestamp/actions/workflows/main.yml)
+[![Coverage Status](https://coveralls.io/repos/github/whatyouhide/ecto_unix_timestamp/badge.svg?branch=main)](https://coveralls.io/github/whatyouhide/ecto_unix_timestamp?branch=main)
 
 A nimble Elixir library that provides a [`Ecto.Type`][ecto-type] for fields that come in as [**Unix timestamps**][unix-timestamp].
 
