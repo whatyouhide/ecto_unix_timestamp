@@ -1,0 +1,113 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+jobs:
+  test:
+    name: Test (Elixir ${{matrix.elixir}} | Erlang/OTP ${{matrix.otp}})
+    runs-on: ubuntu-20.04
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - otp: "26.0.1"
+            elixir: "1.15.0"
+            version-type: strict
+            dialyzer: true
+
+          - otp: "25.3"
+            elixir: "1.14.3"
+            coverage: true
+            lint: true
+            version-type: loose
+
+          - otp: "23.0"
+            elixir: "1.11.2"
+            version-type: loose
+
+    env:
+      GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
+      MIX_ENV: test
+
+    steps:
+      - name: Clone the repository
+        uses: actions/checkout@v3
+
+      - name: Start Docker
+        run: docker-compose up --detach
+
+      - name: Install OTP and Elixir
+        uses: erlef/setup-beam@v1
+        with:
+          otp-version: ${{matrix.otp}}
+          elixir-version: ${{matrix.elixir}}
+          version-type: ${{matrix.version-type}}
+
+      - name: Cache dependencies
+        id: cache-deps
+        uses: actions/cache@v3
+        with:
+          path: |
+            deps
+            _build
+          key: ${{ runner.os }}-mix-otp${{ matrix.otp }}-elixir${{ matrix.elixir }}-${{ hashFiles('**/mix.lock') }}
+
+      - name: Fetch dependencies and verify mix.lock
+        if: steps.cache-deps.outputs.cache-hit != 'true'
+        run: mix deps.get --check-locked
+
+      - name: Compile dependencies
+        if: steps.cache-deps.outputs.cache-hit != 'true'
+        run: mix deps.compile
+
+      # Don't cache PLTs based on mix.lock hash, as Dialyzer can incrementally update even old ones
+      # Cache key based on Elixir & Erlang version (also useful when running in matrix)
+      - name: Cache Dialyzer's PLT
+        if: ${{ matrix.dialyzer }}
+        uses: actions/cache@v3
+        id: cache-plt
+        with:
+          path: plts
+          key: |
+            plt-${{ runner.os }}-otp${{ matrix.otp }}-elixir${{ matrix.elixir }}-${{ hashFiles('**/mix.lock') }}
+          restore-keys: |
+            plt-${{ runner.os }}-otp${{ matrix.otp }}-elixir${{ matrix.elixir }}-
+
+      # Create PLTs if no cache was found
+      - name: Create PLTs
+        if: steps.cache-plt.outputs.cache-hit != 'true' && matrix.dialyzer
+        run: |
+          mkdir -p plts
+          mix dialyzer --plt
+
+      - name: Check formatting
+        run: mix format --check-formatted
+        if: ${{ matrix.lint }}
+
+      - name: Check no unused dependencies
+        run: mix do deps.get, deps.unlock --check-unused
+        if: ${{ matrix.lint == 'true' && steps.cache-deps.outputs.cache-hit != 'true' }}
+
+      - name: Compile with --warnings-as-errors
+        run: mix compile --warnings-as-errors
+        if: ${{ matrix.lint }}
+
+      - name: Run tests
+        run: mix test --trace --exclude propcheck
+        if: ${{ !matrix.coverage }}
+
+      - name: Run tests with coverage
+        run: mix coveralls.github
+        if: ${{ matrix.coverage }}
+
+      - name: Run dialyzer
+        run: mix dialyzer --format github
+        if: ${{ matrix.dialyzer }}
+
+      - name: Dump Docker logs on failure
+        uses: jwalton/gh-docker-logs@v1
+        if: failure()
