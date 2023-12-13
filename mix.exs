@@ -1,9 +1,9 @@
 defmodule EctoUnixTimestamp.MixProject do
   use Mix.Project
 
+  @version "0.2.0"
   @description "Nimble Ecto type for datetime fields to cast from Unix timestamps."
   @repo_url "https://github.com/whatyouhide/ecto_unix_timestamp"
-  @version "0.1.0"
 
   def project do
     [
