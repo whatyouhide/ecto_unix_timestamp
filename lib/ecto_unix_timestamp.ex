@@ -47,6 +47,12 @@ defmodule EctoUnixTimestamp do
 
   use Ecto.ParameterizedType
 
+  @typedoc """
+  Type for a field of type `EctoUnixTimestamp`.
+  """
+  @typedoc since: "0.2.0"
+  @type t() :: DateTime.t() | NaiveDateTime.t()
+
   @valid_units [
     :second,
     :millisecond,
