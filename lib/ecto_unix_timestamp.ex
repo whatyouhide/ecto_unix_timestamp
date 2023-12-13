@@ -14,18 +14,22 @@ defmodule EctoUnixTimestamp do
   Use this Ecto type in your schemas. You'll have to choose the **precision** of the Unix
   timestamp, and the underlying database data type you want to *store* the data as.
 
-      schema "users" do
-        field :created_at, EctoUnixTimestamp, unit: :second, underlying_type: :utc_datetime_usec
+      defmodule User do
+        use Ecto.Schema
+
+        schema "users" do
+          field :created_at, EctoUnixTimestamp, unit: :second, underlying_type: :utc_datetime
+        end
       end
 
   Once you have this, you can cast Unix timestamps:
 
       import Ecto.Changeset
 
-      changeset = cast(%User{}, %{created_at: System.system_time(:second)}, [:created_at])
+      changeset = cast(%User{}, %{created_at: 1672563600}, [:created_at])
 
       fetch_field!(changeset, :created_at)
-      #=> ~U[...] # a DateTime
+      #=> ~U[2023-01-01 09:00:00Z]
 
   ## Options
 
@@ -35,7 +39,7 @@ defmodule EctoUnixTimestamp do
       `:millisecond`, `:microsecond`, or `:nanosecond`. This option is **required**.
 
     * `:underlying_type` - The underlying Ecto type to use for storing the data.
-      This option is required. It can be one of the native datetime types, that is,
+      This option is **required**. It can be one of the native datetime types, that is,
       `:utc_datetime`, `:utc_datetime_usec`, `:naive_datetime`, or
       `:naive_datetime_usec`.
 
@@ -123,9 +127,17 @@ defmodule EctoUnixTimestamp do
     {:ok, data}
   end
 
+  def load(_data, _loader, _params) do
+    :error
+  end
+
   @impl true
   def dump(data, _dumper, _params)
       when is_nil(data) or is_struct(data, DateTime) or is_struct(data, NaiveDateTime) do
     {:ok, data}
+  end
+
+  def dump(_data, _dumper, _params) do
+    :error
   end
 end
