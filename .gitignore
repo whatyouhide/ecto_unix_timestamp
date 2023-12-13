@@ -27,3 +27,6 @@ ecto_unix_timestamp-*.tar
 
 # SQLite3 databases.
 *.sqlite3
+
+# Dialyzer stuff
+/plts
