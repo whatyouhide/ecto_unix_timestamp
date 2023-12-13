@@ -19,12 +19,12 @@ jobs:
             elixir: "1.15"
             version-type: strict
             dialyzer: true
+            coverage: true
+            lint: true
 
           # Oldest supported versions
           - otp: "21.3"
             elixir: "1.11.4"
-            coverage: true
-            lint: true
             version-type: loose
 
     env:
