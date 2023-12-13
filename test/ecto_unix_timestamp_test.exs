@@ -171,6 +171,24 @@ defmodule EctoUnixTimestampTest do
     assert changeset.valid?
   end
 
+  test "casting invalid terms" do
+    for field <- [
+          :timestamp_second_utc,
+          :timestamp_millisecond_utc,
+          :timestamp_microsecond_utc,
+          :timestamp_nanosecond_utc,
+          :timestamp_second_naive,
+          :timestamp_millisecond_naive,
+          :timestamp_microsecond_naive,
+          :timestamp_nanosecond_naive
+        ] do
+      changeset = cast(%UserAction{}, %{field => :invalid}, [field])
+      refute changeset.valid?
+      assert {"is invalid", meta} = changeset.errors[field]
+      assert meta[:reason] == "Unix timestamp must be an integer"
+    end
+  end
+
   @tag :tmp_dir
   test "persisting nils to the database", %{tmp_dir: tmp_dir} do
     db_path = Path.join(tmp_dir, "ecto_unix_timestamp_test.sqlite3")

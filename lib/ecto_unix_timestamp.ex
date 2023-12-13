@@ -102,7 +102,7 @@ defmodule EctoUnixTimestamp do
     {:ok, nil}
   end
 
-  def cast(data, %{unit: unit, type: type}) do
+  def cast(data, %{unit: unit, type: type}) when is_integer(data) do
     case DateTime.from_unix(data, unit) do
       {:ok, dt} when type in [:naive_datetime, :naive_datetime_usec] ->
         {:ok, DateTime.to_naive(dt)}
@@ -115,29 +115,19 @@ defmodule EctoUnixTimestamp do
     end
   end
 
+  def cast(_other, _params) do
+    {:error, [reason: "Unix timestamp must be an integer"]}
+  end
+
   @impl true
   def load(data, loader, params)
-
-  def load(nil, _loader, _params) do
-    {:ok, nil}
-  end
-
-  def load(data, _loader, _params)
-      when is_struct(data, DateTime) or is_struct(data, NaiveDateTime) do
-    {:ok, data}
-  end
-
-  def load(_data, _loader, _params) do
-    :error
-  end
+  def load(nil, _loader, _params), do: {:ok, nil}
+  def load(%mod{} = data, _loader, _params) when mod in [DateTime, NaiveDateTime], do: {:ok, data}
+  def load(_data, _loader, _params), do: :error
 
   @impl true
-  def dump(data, _dumper, _params)
-      when is_nil(data) or is_struct(data, DateTime) or is_struct(data, NaiveDateTime) do
-    {:ok, data}
-  end
-
-  def dump(_data, _dumper, _params) do
-    :error
-  end
+  def dump(data, dumper, params)
+  def dump(nil, _dumper, _params), do: {:ok, nil}
+  def dump(%mod{} = data, _dumper, _params) when mod in [DateTime, NaiveDateTime], do: {:ok, data}
+  def dump(_data, _dumper, _params), do: :error
 end
