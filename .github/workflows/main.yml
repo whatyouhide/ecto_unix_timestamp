@@ -14,19 +14,17 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - otp: "26.0.1"
-            elixir: "1.15.0"
+          # Latest supported versions
+          - otp: "26.2"
+            elixir: "1.15"
             version-type: strict
             dialyzer: true
-
-          - otp: "25.3"
-            elixir: "1.14.3"
             coverage: true
             lint: true
-            version-type: loose
 
-          - otp: "23.0"
-            elixir: "1.11.2"
+          # Oldest supported versions
+          - otp: "21.3"
+            elixir: "1.11.4"
             version-type: loose
 
     env:
@@ -36,9 +34,6 @@ jobs:
     steps:
       - name: Clone the repository
         uses: actions/checkout@v3
-
-      - name: Start Docker
-        run: docker-compose up --detach
 
       - name: Install OTP and Elixir
         uses: erlef/setup-beam@v1
@@ -54,14 +49,15 @@ jobs:
           path: |
             deps
             _build
-          key: ${{ runner.os }}-mix-otp${{ matrix.otp }}-elixir${{ matrix.elixir }}-${{ hashFiles('**/mix.lock') }}
+          key: |
+            ${{ runner.os }}-mix-otp${{ matrix.otp }}-elixir${{ matrix.elixir }}-${{ hashFiles('**/mix.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-mix-otp${{ matrix.otp }}-elixir${{ matrix.elixir }}-
 
       - name: Fetch dependencies and verify mix.lock
-        if: steps.cache-deps.outputs.cache-hit != 'true'
         run: mix deps.get --check-locked
 
       - name: Compile dependencies
-        if: steps.cache-deps.outputs.cache-hit != 'true'
         run: mix deps.compile
 
       # Don't cache PLTs based on mix.lock hash, as Dialyzer can incrementally update even old ones
@@ -97,7 +93,7 @@ jobs:
         if: ${{ matrix.lint }}
 
       - name: Run tests
-        run: mix test --trace --exclude propcheck
+        run: mix test --trace
         if: ${{ !matrix.coverage }}
 
       - name: Run tests with coverage
@@ -107,7 +103,3 @@ jobs:
       - name: Run dialyzer
         run: mix dialyzer --format github
         if: ${{ matrix.dialyzer }}
-
-      - name: Dump Docker logs on failure
-        uses: jwalton/gh-docker-logs@v1
-        if: failure()

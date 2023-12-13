@@ -2,6 +2,7 @@ defmodule EctoUnixTimestampTest do
   use ExUnit.Case, async: true
 
   import Ecto.Changeset
+  import EctoUnixTimestamp.TestHelpers
 
   defmodule Repo do
     use Ecto.Repo,
@@ -52,7 +53,7 @@ defmodule EctoUnixTimestampTest do
 
   for unit <- [:second, :millisecond, :microsecond] do
     test "timestamps are casted correctly with unit #{inspect(unit)} (utc)" do
-      now = DateTime.utc_now(unquote(unit))
+      now = datetime_utc_now(unquote(unit))
       field = :"timestamp_#{unquote(unit)}_utc"
       params = %{field => DateTime.to_unix(now, unquote(unit))}
 
@@ -64,7 +65,7 @@ defmodule EctoUnixTimestampTest do
     end
 
     test "timestamps are casted correctly with unit #{inspect(unit)} (naive)" do
-      now = NaiveDateTime.utc_now(unquote(unit))
+      now = naive_datetime_utc_now(unquote(unit))
       field = :"timestamp_#{unquote(unit)}_naive"
 
       params = %{

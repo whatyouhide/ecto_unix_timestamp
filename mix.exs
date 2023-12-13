@@ -9,7 +9,7 @@ defmodule EctoUnixTimestamp.MixProject do
     [
       app: :ecto_unix_timestamp,
       version: @version,
-      elixir: "~> 1.14",
+      elixir: "~> 1.11",
       start_permanent: Mix.env() == :prod,
       deps: deps(),
       preferred_cli_env: [
