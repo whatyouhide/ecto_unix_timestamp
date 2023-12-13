@@ -21,8 +21,8 @@ jobs:
             dialyzer: true
 
           # Oldest supported versions
-          - otp: "25.3"
-            elixir: "1.14.3"
+          - otp: "21.3"
+            elixir: "1.11.4"
             coverage: true
             lint: true
             version-type: loose
