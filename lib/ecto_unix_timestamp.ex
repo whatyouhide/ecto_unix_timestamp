@@ -9,6 +9,11 @@ defmodule EctoUnixTimestamp do
   `DateTime` or `NaiveDateTime` structs before passing them to Ecto, which somewhat defeats
   the purpose of Ecto casting for those fields. This nimble library solves exactly this issue.
 
+  > #### Casting Datetimes {: .info}
+  >
+  > When casting a field of type `EctoUnixTimestamp`, the value of the field can also be a
+  > `DateTime` or `NaiveDateTime` struct. In that case, the value is passed through as-is.
+
   ## Usage
 
   Use this Ecto type in your schemas. You'll have to choose the **precision** of the Unix
@@ -42,6 +47,32 @@ defmodule EctoUnixTimestamp do
       This option is **required**. It can be one of the native datetime types, that is,
       `:utc_datetime`, `:utc_datetime_usec`, `:naive_datetime`, or
       `:naive_datetime_usec`.
+
+  ## Examples of Casting
+
+      iex> type = Ecto.ParameterizedType.init(EctoUnixTimestamp, unit: :millisecond, underlying_type: :utc_datetime)
+      iex> Ecto.Type.cast(type, 1706818415865)
+      {:ok, ~U[2024-02-01 20:13:35.865Z]}
+
+      iex> type = Ecto.ParameterizedType.init(EctoUnixTimestamp, unit: :second, underlying_type: :naive_datetime)
+      iex> Ecto.Type.cast(type, 1706818415)
+      {:ok, ~N[2024-02-01 20:13:35Z]}
+
+  With a `DateTime` or `NaiveDateTime` struct:
+
+      iex> type = Ecto.ParameterizedType.init(EctoUnixTimestamp, unit: :second, underlying_type: :naive_datetime)
+      iex> Ecto.Type.cast(type, ~N[2024-02-01 20:13:35Z])
+      {:ok, ~N[2024-02-01 20:13:35Z]}
+
+      iex> type = Ecto.ParameterizedType.init(EctoUnixTimestamp, unit: :second, underlying_type: :utc_datetime_usec)
+      iex> Ecto.Type.cast(type, ~U[2024-02-01 20:13:35.846393Z])
+      {:ok, ~U[2024-02-01 20:13:35.846393Z]}
+
+  `nil` is always valid, as with any other Ecto type:
+
+      iex> type = Ecto.ParameterizedType.init(EctoUnixTimestamp, unit: :second, underlying_type: :naive_datetime)
+      iex> Ecto.Type.cast(type, nil)
+      {:ok, nil}
 
   """
 
@@ -108,6 +139,10 @@ defmodule EctoUnixTimestamp do
     {:ok, nil}
   end
 
+  def cast(%mod{} = data, %{type: type}) when mod in [DateTime, NaiveDateTime] do
+    Ecto.Type.cast(type, data)
+  end
+
   def cast(data, %{unit: unit, type: type}) when is_integer(data) do
     case DateTime.from_unix(data, unit) do
       {:ok, dt} when type in [:naive_datetime, :naive_datetime_usec] ->
@@ -122,7 +157,7 @@ defmodule EctoUnixTimestamp do
   end
 
   def cast(_other, _params) do
-    {:error, [reason: "Unix timestamp must be an integer"]}
+    {:error, [reason: "Unix timestamp must be an integer or a DateTime/NaiveDateTime struct"]}
   end
 
   @impl true

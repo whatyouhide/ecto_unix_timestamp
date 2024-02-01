@@ -1,6 +1,8 @@
 defmodule EctoUnixTimestampTest do
   use ExUnit.Case, async: true
 
+  doctest EctoUnixTimestamp
+
   import Ecto.Changeset
   import EctoUnixTimestamp.TestHelpers
 
@@ -185,7 +187,7 @@ defmodule EctoUnixTimestampTest do
       changeset = cast(%UserAction{}, %{field => :invalid}, [field])
       refute changeset.valid?
       assert {"is invalid", meta} = changeset.errors[field]
-      assert meta[:reason] == "Unix timestamp must be an integer"
+      assert meta[:reason] == "Unix timestamp must be an integer or a DateTime/NaiveDateTime struct"
     end
   end
 
