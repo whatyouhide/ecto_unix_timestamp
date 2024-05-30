@@ -203,13 +203,24 @@ defmodule EctoUnixTimestampTest do
       assert Repo.get!(UserAction, my_schema.id) == my_schema
 
       assert my_schema.timestamp_second_utc == DateTime.truncate(utc_now, :second)
-      assert my_schema.timestamp_millisecond_utc == DateTime.truncate(utc_now, :millisecond)
+
+      assert my_schema.timestamp_millisecond_utc ==
+               utc_now
+               |> DateTime.truncate(:millisecond)
+               |> Map.update!(:microsecond, fn {val, _precision = 3} -> {val, 6} end)
+
       assert my_schema.timestamp_microsecond_utc == DateTime.truncate(utc_now, :microsecond)
       assert my_schema.timestamp_nanosecond_utc == utc_now
 
       assert my_schema.timestamp_second_naive == NaiveDateTime.truncate(naive_now, :second)
-      assert my_schema.timestamp_millisecond_naive == NaiveDateTime.truncate(naive_now, :millisecond)
+
+      assert my_schema.timestamp_millisecond_naive ==
+               naive_now
+               |> NaiveDateTime.truncate(:millisecond)
+               |> Map.update!(:microsecond, fn {val, _precision = 3} -> {val, 6} end)
+
       assert my_schema.timestamp_microsecond_naive == NaiveDateTime.truncate(naive_now, :microsecond)
+
       assert my_schema.timestamp_nanosecond_naive == naive_now
 
       Repo.rollback(:all_good)

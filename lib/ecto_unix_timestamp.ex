@@ -198,8 +198,7 @@ defmodule EctoUnixTimestamp do
   @impl true
   def load(data, loader, params)
   def load(nil, _loader, _params), do: {:ok, nil}
-  def load(%mod{} = data, _loader, _params) when mod in [DateTime, NaiveDateTime], do: {:ok, data}
-  def load(_data, _loader, _params), do: :error
+  def load(value, _loader, %{type: type}), do: Ecto.Type.load(type, value)
 
   @impl true
   def dump(data, dumper, params)
