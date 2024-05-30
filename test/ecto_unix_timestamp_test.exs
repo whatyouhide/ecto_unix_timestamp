@@ -50,6 +50,11 @@ defmodule EctoUnixTimestampTest do
       field :timestamp_nanosecond_naive, EctoUnixTimestamp,
         unit: :nanosecond,
         underlying_type: :naive_datetime_usec
+
+      field :timestamp_microsecond_naive_non_string, EctoUnixTimestamp,
+        unit: :microsecond,
+        underlying_type: :naive_datetime_usec,
+        accept_strings: false
     end
   end
 
@@ -116,6 +121,48 @@ defmodule EctoUnixTimestampTest do
     assert Map.fetch!(my_schema, :timestamp_nanosecond_naive) == now
   end
 
+  test "timestamps are casted correctly as stringy integers with unit :nanosecond (naive)" do
+    now = NaiveDateTime.utc_now()
+
+    params = %{
+      timestamp_nanosecond_naive:
+        now |> DateTime.from_naive!("Etc/UTC") |> DateTime.to_unix(:nanosecond) |> Integer.to_string()
+    }
+
+    changeset = cast(%UserAction{}, params, [:timestamp_nanosecond_naive])
+    assert changeset.valid?
+
+    my_schema = apply_action!(changeset, :validate)
+    assert Map.fetch!(my_schema, :timestamp_nanosecond_naive) == now
+  end
+
+  test "timestamps are refused correctly as stringy integers with :accept_strings as false" do
+    now = NaiveDateTime.utc_now()
+
+    params = %{
+      timestamp_microsecond_naive_non_string:
+        now
+        |> DateTime.from_naive!("Etc/UTC")
+        |> DateTime.to_unix(:microsecond)
+        |> Integer.to_string()
+    }
+
+    changeset = cast(%UserAction{}, params, [:timestamp_microsecond_naive_non_string])
+    refute changeset.valid?
+    assert {"is invalid", extra} = changeset.errors[:timestamp_microsecond_naive_non_string]
+    assert extra[:reason] == "Unix timestamp must be an integer or a DateTime/NaiveDateTime struct"
+  end
+
+  test "timestamps are refused correctly as malformed strings" do
+    params = %{
+      timestamp_microsecond_naive: "invalid"
+    }
+
+    changeset = cast(%UserAction{}, params, [:timestamp_microsecond_naive])
+    refute changeset.valid?
+    assert {"is invalid", _extra} = changeset.errors[:timestamp_microsecond_naive]
+  end
+
   @tag :tmp_dir
   test "persisting to the database", %{tmp_dir: tmp_dir} do
     db_path = Path.join(tmp_dir, "ecto_unix_timestamp_test.sqlite3")
@@ -132,7 +179,8 @@ defmodule EctoUnixTimestampTest do
         timestamp_second_naive INTEGER,
         timestamp_millisecond_naive INTEGER,
         timestamp_microsecond_naive INTEGER,
-        timestamp_nanosecond_naive INTEGER
+        timestamp_nanosecond_naive INTEGER,
+        timestamp_microsecond_naive_non_string INTEGER
       )
       """)
 
@@ -207,7 +255,8 @@ defmodule EctoUnixTimestampTest do
         timestamp_second_naive INTEGER,
         timestamp_millisecond_naive INTEGER,
         timestamp_microsecond_naive INTEGER,
-        timestamp_nanosecond_naive INTEGER
+        timestamp_nanosecond_naive INTEGER,
+        timestamp_microsecond_naive_non_string INTEGER
       )
       """)
 
@@ -253,6 +302,12 @@ defmodule EctoUnixTimestampTest do
     test "raises if :underlying_type is invalid" do
       assert_raise ArgumentError, ~r/invalid value for the :underlying_type option/, fn ->
         EctoUnixTimestamp.init(unit: :second, underlying_type: :invalid_type)
+      end
+    end
+
+    test "raises if :accept_strings is not a boolean" do
+      assert_raise ArgumentError, ~r/invalid value for the :accept_strings option/, fn ->
+        EctoUnixTimestamp.init(unit: :second, underlying_type: :utc_datetime, accept_strings: :invalid)
       end
     end
   end

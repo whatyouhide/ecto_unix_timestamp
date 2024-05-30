@@ -48,6 +48,11 @@ defmodule EctoUnixTimestamp do
       `:utc_datetime`, `:utc_datetime_usec`, `:naive_datetime`, or
       `:naive_datetime_usec`.
 
+    * `:accept_strings` - A boolean that indicates whether the type should accept strings
+      as input. If `true`, the type will attempt to parse strings as integers. If `false`,
+      the type will only accept integers and `DateTime`/`NaiveDateTime` structs. Defaults to
+      `true`. *Available since v1.0.0*.
+
   ## Examples of Casting
 
       iex> type = Ecto.ParameterizedType.init(EctoUnixTimestamp, unit: :millisecond, underlying_type: :utc_datetime)
@@ -67,6 +72,12 @@ defmodule EctoUnixTimestamp do
       iex> type = Ecto.ParameterizedType.init(EctoUnixTimestamp, unit: :second, underlying_type: :utc_datetime_usec)
       iex> Ecto.Type.cast(type, ~U[2024-02-01 20:13:35.846393Z])
       {:ok, ~U[2024-02-01 20:13:35.846393Z]}
+
+  With a string:
+
+      iex> type = Ecto.ParameterizedType.init(EctoUnixTimestamp, unit: :millisecond, underlying_type: :utc_datetime, accept_strings: true)
+      iex> Ecto.Type.cast(type, "1706818415866")
+      {:ok, ~U[2024-02-01 20:13:35.866Z]}
 
   `nil` is always valid, as with any other Ecto type:
 
@@ -110,6 +121,8 @@ defmodule EctoUnixTimestamp do
         raise ArgumentError, "missing required option :underlying_type"
       end)
 
+    accept_strings? = Keyword.get(opts, :accept_strings, true)
+
     if unit not in @valid_units do
       raise ArgumentError, """
       invalid value for the :unit option, expected one of #{inspect(@valid_units)}, \
@@ -124,7 +137,14 @@ defmodule EctoUnixTimestamp do
       """
     end
 
-    %{unit: unit, type: underlying_type}
+    if not is_boolean(accept_strings?) do
+      raise ArgumentError, """
+      invalid value for the :accept_strings option, expected a boolean, got: \
+      #{inspect(accept_strings?)}
+      """
+    end
+
+    %{unit: unit, type: underlying_type, accept_strings?: accept_strings?}
   end
 
   @impl true
@@ -153,6 +173,21 @@ defmodule EctoUnixTimestamp do
 
       {:error, _reason} ->
         :error
+    end
+  end
+
+  def cast(data, %{accept_strings?: true} = params) when is_binary(data) do
+    case Integer.parse(data) do
+      {int, ""} ->
+        cast(int, params)
+
+      _other ->
+        error = """
+        Unix timestamp must be an integer, a string with a Unix timestamp, or a \
+        DateTime/NaiveDateTime struct\
+        """
+
+        {:error, [reason: error]}
     end
   end
 
