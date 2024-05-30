@@ -3,6 +3,7 @@
 ## v1.0.0
 
   * Add default support for accepting Unix timestamps as strings as well, with an optional `:accept_strings` option to disable the behavior (it's enabled by default).
+  * Fix a bug with loading truncated datetimes and naive datetimes.
 
 ## v0.3.0
 
